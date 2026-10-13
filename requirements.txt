@@ -1,0 +1,10 @@
+# DriftSentry core dependencies
+rich>=13.0.0
+PyYAML>=6.0
+requests>=2.31.0
+
+# Optional raw socket SYN/UDP probing (Linux CAP_NET_RAW / root only)
+# scapy>=2.5.0
+
+# Testing and development
+pytest>=7.0.0

@@ -1,0 +1,25 @@
+# DriftSentry — Example Configuration
+# Copy this to config.yaml and edit before use.
+#
+# ⚠️  Keep this file private (chmod 600) — it may contain webhook URLs/secrets.
+#     Set retention_days to manage DB size.  Run `driftsentry prune` periodically.
+
+# ── Target ──────────────────────────────────────────────────────────────────
+target: 127.0.0.1        # IP, hostname, CIDR (e.g. 10.0.0.0/24), or @/path/to/targets.txt
+ports: top1000           # top100 | top1000 | all | 80 | 1-1024 | 22,80,443
+protocol: tcp-connect    # tcp-connect (default, no root) | tcp-syn | udp | tcp+udp
+
+# ── Performance ─────────────────────────────────────────────────────────────
+concurrency: 300         # Max in-flight probes
+timeout_ms: 800          # Per-probe timeout in milliseconds
+rate_limit_pps:          # Max probes/sec — leave blank for unlimited; set ~200 for politeness
+
+# ── Storage ─────────────────────────────────────────────────────────────────
+db_path: driftsentry.db
+retention_days: 90       # Prune scans older than this many days
+
+# ── Alerts ──────────────────────────────────────────────────────────────────
+alerts:
+  webhook:               # POST JSON to this URL on drift (Slack/Discord/SIEM compatible)
+  syslog: false          # Send to local syslog
+  json_stdout: false     # Machine-readable JSON instead of human-readable output

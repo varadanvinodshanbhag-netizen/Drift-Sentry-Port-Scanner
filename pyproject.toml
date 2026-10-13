@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "driftsentry"
+version = "0.1.0"
+description = "Port Scanner with Drift Detection — attack-surface drift monitoring CLI"
+requires-python = ">=3.11"
+dependencies = [
+    "PyYAML>=6.0",
+    "requests>=2.31.0",
+    "rich>=13.0.0",
+]
+
+[project.optional-dependencies]
+syn = ["scapy>=2.5.0"]   # Opt-in: raw SYN/UDP scanning, needs CAP_NET_RAW
+
+[project.scripts]
+driftsentry = "driftsentry.cli:main"
