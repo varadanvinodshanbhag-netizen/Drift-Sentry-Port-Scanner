@@ -180,11 +180,21 @@ def parse_ports(spec: str) -> list[int]:
     ports: set[int] = set()
     for part in spec.split(","):
         part = part.strip()
+        if not part:
+            continue
         if "-" in part:
-            lo, hi = part.split("-", 1)
-            ports.update(range(int(lo), int(hi) + 1))
+            lo_str, hi_str = part.split("-", 1)
+            lo, hi = int(lo_str), int(hi_str)
+            if lo > hi:
+                raise ValueError(f"Invalid port range '{part}': lower bound {lo} exceeds upper bound {hi}")
+            if lo < 1 or hi > 65535:
+                raise ValueError(f"Port range '{part}' out of valid range (1-65535)")
+            ports.update(range(lo, hi + 1))
         else:
-            ports.add(int(part))
+            p = int(part)
+            if not (1 <= p <= 65535):
+                raise ValueError(f"Port {p} out of valid range (1-65535)")
+            ports.add(p)
 
     return sorted(ports)
 
@@ -203,6 +213,8 @@ def parse_targets(spec: str) -> list[str]:
       File path:    "@/path/to/targets.txt"  (one target per line)
     """
     spec = spec.strip()
+    if not spec:
+        return []
 
     # File of targets
     if spec.startswith("@"):

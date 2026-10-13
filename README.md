@@ -2,7 +2,7 @@
 
 [![Platform](https://img.shields.io/badge/Platform-Kali%20Linux%20%7C%20Debian%20%7C%20Ubuntu-blue.svg)](https://www.kali.org/)
 [![Python](https://img.shields.io/badge/Python-3.11%2B-brightgreen.svg)](https://www.python.org/)
-[![Tests](https://img.shields.io/badge/Tests-15%2F15%20Passing-success.svg)](https://github.com/)
+[![Tests](https://img.shields.io/badge/Tests-24%2F24%20Passing-success.svg)](tests/)
 [![License](https://img.shields.io/badge/License-MIT-purple.svg)](LICENSE)
 [![Architecture](https://img.shields.io/badge/Architecture-AsyncIO%20%2B%20SQLite%20WAL-orange.svg)](driftsentry/)
 
@@ -102,8 +102,8 @@ Catching these risks requires either manual log diffing (error-prone and rarely 
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/<your-username>/driftsentry.git
-cd driftsentry
+git clone https://github.com/varadanvinodshanbhag-netizen/Drift-Sentry-Port-Scanner.git
+cd Drift-Sentry-Port-Scanner
 ```
 
 ### 2. Install Dependencies
@@ -117,7 +117,7 @@ pip install -r requirements.txt
 
 ### 3. Verify Installation
 ```bash
-# Run the test suite (15 unit tests)
+# Run the test suite (24 unit tests)
 pytest tests/ -v
 
 # Check CLI binary
@@ -140,7 +140,7 @@ driftsentry
  | |_| | |  | |  _| |_ ___) |  __/ | | | |_| |  | |_| |
  |____/|_|  |_|_|  \__|____/ \___|_| |_|\__|_|   \__, |
                                                  |___/ 
-🛡️  PORT SCANNER WITH ATTACK-SURFACE DRIFT DETECTION | v0.3.0 [Kali Linux Certified]
+🛡️  PORT SCANNER WITH ATTACK-SURFACE DRIFT DETECTION | v0.3.0
 
 Interactive Mode Active. Type 'help' for command list, 'exit' or 'q' to quit.
 
@@ -264,6 +264,15 @@ pytest tests/ -v
 
 Expected result:
 ```text
+tests/test_cli_edge_cases.py::test_parse_ports_valid_ranges_and_presets PASSED
+tests/test_cli_edge_cases.py::test_parse_ports_invalid_bounds_and_format PASSED
+tests/test_cli_edge_cases.py::test_parse_targets_edge_cases PASSED
+tests/test_cli_edge_cases.py::test_compute_drift_empty_scans PASSED
+tests/test_cli_edge_cases.py::test_cmd_diff_nonexistent_scans PASSED
+tests/test_cli_edge_cases.py::test_nmap_scan_missing_binary PASSED
+tests/test_cli_edge_cases.py::test_db_baseline_nonexistent_tag PASSED
+tests/test_cli_edge_cases.py::test_cmd_scan_unauthorized_exit PASSED
+tests/test_cli_edge_cases.py::test_export_scan_report_nonexistent_scan PASSED
 tests/test_diff_engine.py::test_no_events_when_identical PASSED
 tests/test_diff_engine.py::test_new_port_detected PASSED
 tests/test_diff_engine.py::test_closed_port_detected PASSED
@@ -280,7 +289,7 @@ tests/test_reports.py::test_generate_html_report PASSED
 tests/test_reports.py::test_generate_csv_report PASSED
 tests/test_reports.py::test_export_scan_report PASSED
 
-======================== 15 passed in 0.40s ========================
+======================== 24 passed in 0.30s ========================
 ```
 
 ---

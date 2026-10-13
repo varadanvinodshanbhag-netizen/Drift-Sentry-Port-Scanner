@@ -78,7 +78,6 @@ def print_banner() -> None:
         t.append("\n\n🛡️  PORT SCANNER WITH ATTACK-SURFACE DRIFT DETECTION", style="bold yellow")
         t.append(" | ", style="dim")
         t.append("v0.3.0", style="bold green")
-        t.append(" [Kali Linux Certified]", style="bold magenta")
         console.print(Panel(t, border_style="cyan", padding=(0, 2)))
     except Exception:
         print("""
@@ -259,7 +258,7 @@ def _build_parser() -> argparse.ArgumentParser:
                        help="Write directly to /etc/systemd/system/ (requires root)")
 
     # ── report ───────────────────────────────────────────────────────────────
-    p_rep = subs.add_parser("report", aliases=["rep"],
+    p_rep = subs.add_parser("report", aliases=["rep", "r"],
                             help="Generate security audit reports (HTML, Markdown, CSV)")
     p_rep.add_argument("scan_id", type=int, help="ID of the scan to generate reports for")
     p_rep.add_argument("-f", "--format", default="all", choices=["html", "md", "csv", "all"],
@@ -344,11 +343,27 @@ def cmd_init(args: argparse.Namespace) -> int:
                 "json_stdout": False,
             },
         }
-        if yaml is None:
-            print("WARNING: PyYAML is not installed. To generate config.yaml, run: pip install pyyaml", file=sys.stderr)
-        else:
-            with open(cfg_path, "w") as f:
+        if yaml is not None:
+            with open(cfg_path, "w", encoding="utf-8") as f:
                 yaml.dump(template, f, default_flow_style=False, sort_keys=False)
+            print(f"✓  Config template written: {cfg_path.resolve()}")
+        else:
+            default_yaml = """# DriftSentry Configuration Template
+target: 127.0.0.1
+ports: top100
+protocol: tcp-connect
+concurrency: 300
+timeout_ms: 800
+rate_limit_pps: null
+retention_days: 90
+db_path: driftsentry.db
+alerts:
+  webhook: null
+  syslog: false
+  json_stdout: false
+"""
+            with open(cfg_path, "w", encoding="utf-8") as f:
+                f.write(default_yaml)
             print(f"✓  Config template written: {cfg_path.resolve()}")
     else:
         print(f"  Config already exists: {cfg_path} (skipped)")
@@ -513,6 +528,9 @@ def cmd_scan(args: argparse.Namespace) -> int:
             except Exception:
                 print(f"💡 Tip: Generate report via: driftsentry report {scan_id}\n")
 
+    except Exception as exc:
+        print(f"ERROR: Scan execution failed: {exc}", file=sys.stderr)
+        return 1
     finally:
         conn.close()
 
@@ -522,6 +540,15 @@ def cmd_scan(args: argparse.Namespace) -> int:
 def cmd_diff(args: argparse.Namespace) -> int:
     conn = db.get_connection(args.db)
     try:
+        from_scan = db.get_scan(conn, args.from_id)
+        if not from_scan:
+            print(f"ERROR: Scan #{args.from_id} not found in {args.db}", file=sys.stderr)
+            return 1
+        to_scan = db.get_scan(conn, args.to_id)
+        if not to_scan:
+            print(f"ERROR: Scan #{args.to_id} not found in {args.db}", file=sys.stderr)
+            return 1
+
         current_rows = db.get_results_for_scan(conn, args.to_id)
         prior_rows   = db.get_results_for_scan(conn, args.from_id)
         events = compute_drift(current_rows, prior_rows, args.to_id, args.from_id)
@@ -641,7 +668,6 @@ def cmd_prune(args: argparse.Namespace) -> int:
 
         if not old_scans:
             print(f"Nothing to prune — no scans older than {keep_days} days.")
-            conn.close()
             return 0
 
         old_ids = [r["scan_id"] for r in old_scans]
