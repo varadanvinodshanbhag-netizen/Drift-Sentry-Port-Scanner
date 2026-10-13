@@ -144,7 +144,7 @@ driftsentry
 
 Interactive Mode Active. Type 'help' for command list, 'exit' or 'q' to quit.
 
-driftsentry (127.0.0.1) > nmap 192.168.1.100 21-100
+driftsentry (127.0.0.1) > scan 192.168.1.100 21-100
 driftsentry (192.168.1.100) > scan 192.168.1.100 top100
 driftsentry (192.168.1.100) > history
 driftsentry (192.168.1.100) > diff 1 2
@@ -155,13 +155,13 @@ driftsentry (192.168.1.100) > exit
 
 ### Mode 2: Standalone CLI Commands (Bash / Scripts)
 
-#### 1. Perform an Nmap Scan with Version Detection
+#### 1. Run Port Scan & Drift Detection
 ```bash
-# Run native Nmap engine against target (-a confirms authorized testing)
-driftsentry nmap -t 192.168.1.100 -p 21-445 -a
+# Standard port scan against target (-a confirms authorized testing)
+driftsentry scan -t 192.168.1.100 -p 21-445 -a
 
-# Or via scan subcommand with --nmap flag
-driftsentry scan -t 192.168.1.100 -p top100 --nmap -a
+# Fast top-100 ports scan
+driftsentry scan -t 192.168.1.100 -p top100 -a
 ```
 
 #### 2. Run High-Speed Asynchronous TCP Scan
