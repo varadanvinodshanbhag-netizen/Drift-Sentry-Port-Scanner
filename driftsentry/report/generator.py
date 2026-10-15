@@ -510,8 +510,12 @@ def generate_csv_report(
     # Map events by port for lookup
     drift_by_port: dict[int, dict] = {}
     for e in events_list:
-        if e.get("port"):
-            drift_by_port[int(e["port"])] = e
+        p_val = e.get("port")
+        if p_val is not None:
+            try:
+                drift_by_port[int(p_val)] = e
+            except (ValueError, TypeError):
+                pass
 
     out = io.StringIO()
     writer = csv.writer(out, quoting=csv.QUOTE_MINIMAL)

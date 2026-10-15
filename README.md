@@ -2,7 +2,7 @@
 
 [![Platform](https://img.shields.io/badge/Platform-Kali%20Linux%20%7C%20Debian%20%7C%20Ubuntu-blue.svg)](https://www.kali.org/)
 [![Python](https://img.shields.io/badge/Python-3.11%2B-brightgreen.svg)](https://www.python.org/)
-[![Tests](https://img.shields.io/badge/Tests-24%2F24%20Passing-success.svg)](tests/)
+[![Tests](https://img.shields.io/badge/Tests-26%2F26%20Passing-success.svg)](tests/)
 [![License](https://img.shields.io/badge/License-MIT-purple.svg)](LICENSE)
 [![Architecture](https://img.shields.io/badge/Architecture-AsyncIO%20%2B%20SQLite%20WAL-orange.svg)](driftsentry/)
 
@@ -117,7 +117,7 @@ pip install -r requirements.txt
 
 ### 3. Verify Installation
 ```bash
-# Run the test suite (24 unit tests)
+# Run the test suite (26 unit tests)
 pytest tests/ -v
 
 # Check CLI binary
@@ -273,6 +273,8 @@ tests/test_cli_edge_cases.py::test_nmap_scan_missing_binary PASSED
 tests/test_cli_edge_cases.py::test_db_baseline_nonexistent_tag PASSED
 tests/test_cli_edge_cases.py::test_cmd_scan_unauthorized_exit PASSED
 tests/test_cli_edge_cases.py::test_export_scan_report_nonexistent_scan PASSED
+tests/test_cli_edge_cases.py::test_db_get_latest_scan_id PASSED
+tests/test_cli_edge_cases.py::test_console_report_execution PASSED
 tests/test_diff_engine.py::test_no_events_when_identical PASSED
 tests/test_diff_engine.py::test_new_port_detected PASSED
 tests/test_diff_engine.py::test_closed_port_detected PASSED
@@ -289,7 +291,7 @@ tests/test_reports.py::test_generate_html_report PASSED
 tests/test_reports.py::test_generate_csv_report PASSED
 tests/test_reports.py::test_export_scan_report PASSED
 
-======================== 24 passed in 0.30s ========================
+======================== 26 passed in 0.32s ========================
 ```
 
 ---

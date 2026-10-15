@@ -205,6 +205,22 @@ def get_prior_scan_id(conn: sqlite3.Connection, current_scan_id: int,
     return row["scan_id"] if row else None
 
 
+def get_latest_scan_id(conn: sqlite3.Connection,
+                       target_spec: Optional[str] = None) -> Optional[int]:
+    """Return the most recent scan_id (optionally filtered by target_spec), or None."""
+    if target_spec:
+        row = conn.execute(
+            """SELECT scan_id FROM scans
+               WHERE target_spec = ?
+               ORDER BY scan_id DESC LIMIT 1""",
+            (target_spec,),
+        ).fetchone()
+        if row:
+            return row["scan_id"]
+    row = conn.execute("SELECT scan_id FROM scans ORDER BY scan_id DESC LIMIT 1").fetchone()
+    return row["scan_id"] if row else None
+
+
 def get_results_for_scan(conn: sqlite3.Connection,
                          scan_id: int) -> list[sqlite3.Row]:
     """Return all port results for a scan, joined with host IP."""

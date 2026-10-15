@@ -143,3 +143,53 @@ def test_export_scan_report_nonexistent_scan(tmp_path):
             export_scan_report(conn, scan_id=9999, output_dir=tmp_path)
     finally:
         conn.close()
+
+
+def test_db_get_latest_scan_id(tmp_path):
+    """Verify get_latest_scan_id correctly returns the latest scan with and without target filter."""
+    db_file = tmp_path / "test.db"
+    conn = db.init_db(db_file)
+    try:
+        assert db.get_latest_scan_id(conn) is None
+
+        s1 = db.start_scan(conn, "192.168.1.1", "80", "tcp-connect")
+        db.finish_scan(conn, s1)
+
+        s2 = db.start_scan(conn, "10.0.0.1", "443", "tcp-connect")
+        db.finish_scan(conn, s2)
+
+        assert db.get_latest_scan_id(conn) == s2
+        assert db.get_latest_scan_id(conn, "192.168.1.1") == s1
+        assert db.get_latest_scan_id(conn, "10.0.0.1") == s2
+        assert db.get_latest_scan_id(conn, "nonexistent") == s2  # falls back to global latest
+    finally:
+        conn.close()
+
+
+def test_console_report_execution(tmp_path, monkeypatch):
+    """Verify interactive console handles report, report html, and driftsentry report commands."""
+    import io
+    from driftsentry.cli import run_interactive_console
+
+    db_file = tmp_path / "driftsentry.db"
+    conn = db.init_db(db_file)
+    s1 = db.start_scan(conn, "127.0.0.1", "80", "tcp-connect")
+    db.finish_scan(conn, s1)
+    conn.close()
+
+    # Change working directory to tmp_path where driftsentry.db lives
+    monkeypatch.chdir(tmp_path)
+
+    # Feed commands: report, report html, report 1, driftsentry report, exit
+    commands = io.StringIO("report\nreport html\nreport 1 md\ndriftsentry report\nexit\n")
+    monkeypatch.setattr("builtins.input", lambda prompt="": commands.readline().strip())
+
+    run_interactive_console()
+
+    # Reports directory must contain generated files
+    rep_dir = tmp_path / "reports"
+    assert rep_dir.exists()
+    assert (rep_dir / f"driftsentry_scan_{s1}_127.0.0.1.html").exists()
+    assert (rep_dir / f"driftsentry_scan_{s1}_127.0.0.1.md").exists()
+    assert (rep_dir / f"driftsentry_scan_{s1}_127.0.0.1.csv").exists()
+

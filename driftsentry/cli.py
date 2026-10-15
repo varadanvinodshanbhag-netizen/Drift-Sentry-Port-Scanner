@@ -833,12 +833,15 @@ def cmd_report(args: argparse.Namespace) -> int:
                 t.add_row(p.suffix.lstrip(".").upper(), str(p.resolve()), f"{p.stat().st_size:,} bytes")
             c.print(t)
             c.print(f"[bold cyan]📁 Output Directory:[/bold cyan] {Path(args.output_dir).resolve()}\n")
-        except ImportError:
+        except Exception:
             print(f"\n✓ Generated {len(written_paths)} report(s) for scan #{args.scan_id}:")
             for p in written_paths:
                 print(f"  [{p.suffix.lstrip('.').upper()}] {p.resolve()} ({p.stat().st_size} bytes)")
     except ValueError as e:
         print(f"ERROR: {e}", file=sys.stderr)
+        return 1
+    except Exception as e:
+        print(f"ERROR: Failed to generate report: {e}", file=sys.stderr)
         return 1
     finally:
         conn.close()
@@ -872,8 +875,17 @@ def run_interactive_console() -> None:
         pass
 
     import shlex
-    from rich.console import Console
-    console = Console()
+    try:
+        from rich.console import Console
+        console = Console()
+    except Exception:
+        class _FallbackConsole:
+            def print(self, *args, **kwargs):
+                import re
+                clean = " ".join(str(a) for a in args)
+                clean = re.sub(r'\[/?[a-zA-Z0-9_ -]+\]', '', clean)
+                print(clean)
+        console = _FallbackConsole()
 
     print_banner()
     console.print("[bold green]Interactive Mode Active.[/bold green] Type [bold white]'help'[/bold white] for command list, [bold white]'exit'[/bold white] or [bold white]'q'[/bold white] to quit.\n")
@@ -898,6 +910,11 @@ def run_interactive_console() -> None:
 
         cmd = parts[0].lower()
         args_list = parts[1:]
+
+        # If user ran `driftsentry <command>`, strip the redundant binary prefix
+        if cmd == "driftsentry" and args_list:
+            cmd = args_list[0].lower()
+            args_list = args_list[1:]
 
         if cmd in ("exit", "quit", "q"):
             console.print("[dim]Exiting DriftSentry.[/dim]")
@@ -1064,19 +1081,51 @@ def run_interactive_console() -> None:
             cmd_prune(prune_args)
 
         elif cmd in ("report", "rep", "r"):
-            if not args_list:
-                console.print("[bold red]Usage:[/bold red] report <scan_id> [format]  (e.g.: [bold white]report 1[/bold white] or [bold white]report 1 html[/bold white])")
+            sid = None
+            fmt = "all"
+            out_dir = "reports"
+            valid_fmts = {"html", "md", "markdown", "csv", "all", "both"}
+
+            idx = 0
+            while idx < len(args_list):
+                a = args_list[idx]
+                if a in ("-f", "--format") and idx + 1 < len(args_list):
+                    fmt = args_list[idx + 1].lower()
+                    idx += 2
+                elif a in ("-o", "--output-dir") and idx + 1 < len(args_list):
+                    out_dir = args_list[idx + 1]
+                    idx += 2
+                elif a.lower() in valid_fmts:
+                    fmt = a.lower()
+                    idx += 1
+                else:
+                    try:
+                        sid = int(a)
+                    except ValueError:
+                        pass
+                    idx += 1
+
+            if sid is None:
+                db_path = Path("driftsentry.db")
+                if db_path.exists():
+                    conn = db.get_connection(db_path)
+                    try:
+                        sid = db.get_latest_scan_id(conn, current_target)
+                        if sid is None:
+                            sid = db.get_latest_scan_id(conn)
+                    finally:
+                        conn.close()
+
+            if sid is None:
+                console.print("[bold red]No scan ID specified and no previous scans found in database.[/bold red]")
+                console.print("[dim]Run a scan first: [bold white]scan[/bold white] or specify ID: [bold white]report <id> [format][/bold white][/dim]")
                 continue
-            try:
-                sid = int(args_list[0])
-            except ValueError:
-                console.print("[bold red]Scan ID must be a number.[/bold red]")
-                continue
-            fmt = args_list[1] if len(args_list) > 1 else "all"
+
+            console.print(f"[dim]Generating [bold white]{fmt}[/bold white] audit report for scan [bold white]#{sid}[/bold white]...[/dim]")
             rep_args = argparse.Namespace(
                 scan_id=sid,
                 format=fmt,
-                output_dir="reports",
+                output_dir=out_dir,
                 db="driftsentry.db",
             )
             cmd_report(rep_args)
@@ -1104,7 +1153,7 @@ def _print_console_help() -> None:
         table.add_column("Example", style="dim")
         table.add_row("scan [ip] [ports] [-v]", "s", "Run port scan & detect drift", "scan 127.0.0.1 top100 -v")
         table.add_row("nmap [ip] [ports]", "nm", "Run integrated Nmap scan (-sV)", "nmap 192.168.1.10 21-100")
-        table.add_row("report <id> [fmt]", "rep", "Generate audit report (html/md/csv/all)", "report 1 all")
+        table.add_row("report [id] [fmt]", "rep, r", "Generate audit report (html/md/csv/all)", "report, report html, report 1 all")
         table.add_row("history [ip]", "h", "Show past scan timeline", "history")
         table.add_row("diff <id1> <id2>", "d", "Compare any two past scans", "diff 9 10")
         table.add_row("baselines", "b", "List tagged baseline scans", "baselines")
@@ -1117,9 +1166,9 @@ def _print_console_help() -> None:
     except Exception:
         print("""
 Commands:
-  scan [ip] [ports] [-v]   (s)  - Run scan & detect drift (e.g. scan 127.0.0.1)
-  nmap [ip] [ports]        (nm) - Run integrated Nmap scan (-sV) (e.g. nmap 192.168.1.1 21-100)
-  report <id> [fmt]        (rep) - Generate audit report (e.g. report 1 all)
+  scan [ip] [ports] [-v]   (s)      - Run scan & detect drift (e.g. scan 127.0.0.1)
+  nmap [ip] [ports]        (nm)     - Run integrated Nmap scan (-sV) (e.g. nmap 192.168.1.1 21-100)
+  report [id] [fmt]        (rep, r) - Generate audit report (e.g. report, report html, report 1 all)
   history                  (h)  - Show scan history
   diff <id1> <id2>         (d)  - Compare two past scans (e.g. diff 9 10)
   baselines                (b)  - List tagged baselines
